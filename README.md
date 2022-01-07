@@ -13,7 +13,7 @@ This framework is in development and not ready for production yet.
 def deps do
   [
     {:squid, 
-      git: "https://github.com/drakkardigital/squid", branch: "master"},
+      git: "https://github.com/drakkardigital/squid", branch: "main"},
   ]
 end
 ```
