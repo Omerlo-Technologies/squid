@@ -16,7 +16,7 @@ defmodule SquidWeb do
   defp load_tentacles_cfg(config_key) do
     func = &{&1, Application.get_env(&1, :squid)[config_key]}
 
-    Application.get_env(:squid, :tentacles)
+    Application.get_env(:squid, :tentacles, [])
     |> Enum.map(&func.(&1))
     |> Enum.filter(&elem(&1, 1))
   end

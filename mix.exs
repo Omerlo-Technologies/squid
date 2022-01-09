@@ -5,10 +5,10 @@ defmodule Squid.MixProject do
     [
       app: :squid,
       version: "0.1.0",
-      build_path: "../../_build",
-      config_path: "../../config/config.exs",
-      deps_path: "../../deps",
-      lockfile: "../../mix.lock",
+      build_path: "./_build",
+      config_path: "./config/config.exs",
+      deps_path: "./deps",
+      lockfile: "./mix.lock",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -27,7 +27,8 @@ defmodule Squid.MixProject do
     [
       {:phoenix, "~> 1.6"},
       {:phoenix_live_view, "~> 0.17.0"},
-      {:phoenix_html, "~> 3.1"}
+      {:phoenix_html, "~> 3.1"},
+      {:jason, "~> 1.3", optional: true}
     ]
   end
 end
