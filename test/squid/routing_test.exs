@@ -11,7 +11,7 @@ defmodule SquidWeb.RoutingTest do
     use SquidWeb.Router
 
     squid_scope "/squid-scope" do
-      get "/index", CustomController, :index
+      get("/index", CustomController, :index)
     end
   end
 

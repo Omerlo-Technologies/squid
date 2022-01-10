@@ -25,9 +25,15 @@ defmodule SquidWeb.Router do
       SquidWeb.Router.import_routes
 
   """
-  defmacro import_routes() do
+  defmacro import_routes do
     SquidWeb.registered_routers()
     |> Enum.map(&tentacle_routes/1)
+  end
+
+  defp tentacle_routes({tentacle, router}) do
+    quote do
+      use unquote(router), unquote(tentacle)
+    end
   end
 
   @doc """
@@ -52,10 +58,12 @@ defmodule SquidWeb.Router do
       import Plug.Conn
       import Phoenix.Controller
       import Phoenix.LiveView.Router
+
+      defmacro __using__(tentacle) do
+        squid_routes(tentacle)
+      end
     end
   end
-
-  defp tentacle_routes({tentacle, router}), do: router.routes(tentacle)
 
   @doc """
   Helper to create a tentacle router.
@@ -76,7 +84,7 @@ defmodule SquidWeb.Router do
   """
   defmacro squid_scope(path, opts \\ [], do_block) do
     quote do
-      def routes(tentacle) do
+      def squid_routes(tentacle) do
         routes = unquote(Macro.escape(do_squid_internal_scope(path, opts, do_block)))
 
         quote do
