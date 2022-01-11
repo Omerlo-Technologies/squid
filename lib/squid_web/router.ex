@@ -22,17 +22,24 @@ defmodule SquidWeb.Router do
   ## Example
 
       require SquidWeb.Router
-      SquidWeb.Router.import_routes
+      SquidWeb.Router.import_routes()
+
+      # or with a scope
+
+      require SquidWeb.Router
+      SquidWeb.Router.import_routes(:admin)
 
   """
-  defmacro import_routes do
+  defmacro import_routes(scope \\ :default) do
     SquidWeb.registered_routers()
-    |> Enum.map(&tentacle_routes/1)
+    |> Enum.map(&tentacle_routes(&1, scope))
   end
 
-  defp tentacle_routes({tentacle, router}) do
+  defp tentacle_routes({tentacle, router}, scope) do
+    opts = [tentacle: tentacle, scope: scope]
+
     quote do
-      use unquote(router), unquote(tentacle)
+      use unquote(router), unquote(Macro.escape(opts))
     end
   end
 
@@ -59,8 +66,10 @@ defmodule SquidWeb.Router do
       import Phoenix.Controller
       import Phoenix.LiveView.Router
 
-      defmacro __using__(tentacle) do
-        squid_routes(tentacle)
+      defmacro __using__(opts \\ []) do
+        tentacle = Keyword.fetch!(opts, :tentacle)
+        scope = Keyword.get(opts, :scope, :default)
+        squid_routes(tentacle, scope)
       end
     end
   end
@@ -68,7 +77,7 @@ defmodule SquidWeb.Router do
   @doc """
   Helper to create a tentacle router.
 
-  ## Example
+  ## Examples
 
     use SquidWeb.Router
 
@@ -81,10 +90,26 @@ defmodule SquidWeb.Router do
   - `CoreWeb.Router.Helpers.tentacle_app_page_path/2` and
   - `MyTentacleWeb.Router.Helpers.page_path/2`
 
+  You could also create routes under a scope such as `admin`.
+
+    squid_scope "/my-tentacle-prefix", scope: :admin do
+      get "/users", MyTentacleWeb.UserController, :index
+    end
+
+  You could then import those routes with `SquidWeb.Router.import(scope)`.
+
+  > More information on `SquidWeb.Router.import_routes/1`
+
+  ## Options
+
+  - `scope` define the scope of the router such as `api`, `web`, `admin`. (default: `:default`)
+
   """
   defmacro squid_scope(path, opts \\ [], do_block) do
+    scope = Keyword.get(opts, :scope, :default)
+
     quote do
-      def squid_routes(tentacle) do
+      def squid_routes(tentacle, unquote(scope)) do
         routes = unquote(Macro.escape(do_squid_internal_scope(path, opts, do_block)))
 
         quote do
