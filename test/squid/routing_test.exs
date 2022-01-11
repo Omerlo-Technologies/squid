@@ -33,17 +33,28 @@ defmodule SquidWeb.RoutingTest do
     scope "/admin" do
       SquidWeb.Router.import_routes(:admin)
     end
+
+    SquidWeb.Router.import_routes(:unknow_scope)
   end
 
-  test "get squid index path" do
-    conn = call(PhoenixRouter, :get, "/main-router/squid-scope/index")
-    assert conn.status == 200
-    assert conn.resp_body == "users index"
+  describe "routing" do
+    test "get squid index path" do
+      conn = call(PhoenixRouter, :get, "/main-router/squid-scope/index")
+      assert conn.status == 200
+      assert conn.resp_body == "users index"
+    end
+
+    test "get squid admin index path" do
+      conn = call(PhoenixRouter, :get, "/admin/admin-scope/index")
+      assert conn.status == 200
+      assert conn.resp_body == "users index"
+    end
   end
 
-  test "get squid admin index path" do
-    conn = call(PhoenixRouter, :get, "/admin/admin-scope/index")
-    assert conn.status == 200
-    assert conn.resp_body == "users index"
+  describe "squid scopes" do
+    test "Should contains admin and default" do
+      assert :default in Router.squid_scopes()
+      assert :admin in Router.squid_scopes()
+    end
   end
 end
