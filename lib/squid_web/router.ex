@@ -58,6 +58,8 @@ defmodule SquidWeb.Router do
 
   """
   defmacro __using__(_) do
+    Module.register_attribute(__CALLER__.module, :squid_scopes, accumulate: true)
+
     quote do
       import SquidWeb.Router
       use Phoenix.Router
@@ -69,8 +71,21 @@ defmodule SquidWeb.Router do
       defmacro __using__(opts \\ []) do
         tentacle = Keyword.fetch!(opts, :tentacle)
         scope = Keyword.get(opts, :scope, :default)
-        squid_routes(tentacle, scope)
+
+        if scope in @squid_scopes do
+          require Logger
+          Logger.debug("SquidRouter - Import scope \"#{scope}\" for tentacle \"#{tentacle}\".")
+          squid_routes(tentacle, scope)
+        end
       end
+
+      @before_compile SquidWeb.Router
+    end
+  end
+
+  defmacro __before_compile__(_env) do
+    quote do
+      def squid_scopes, do: @squid_scopes
     end
   end
 
@@ -107,6 +122,8 @@ defmodule SquidWeb.Router do
   """
   defmacro squid_scope(path, opts \\ [], do_block) do
     scope = Keyword.get(opts, :scope, :default)
+
+    Module.put_attribute(__CALLER__.module, :squid_scopes, scope)
 
     quote do
       def squid_routes(tentacle, unquote(scope)) do
