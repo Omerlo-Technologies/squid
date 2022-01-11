@@ -13,6 +13,10 @@ defmodule SquidWeb.RoutingTest do
     squid_scope "/squid-scope" do
       get("/index", CustomController, :index)
     end
+
+    squid_scope "/admin-scope", scope: :admin do
+      get("/index", CustomController, :index)
+    end
   end
 
   Application.put_env(:squid, :tentacles, [:test])
@@ -25,10 +29,20 @@ defmodule SquidWeb.RoutingTest do
     scope "/main-router" do
       SquidWeb.Router.import_routes()
     end
+
+    scope "/admin" do
+      SquidWeb.Router.import_routes(:admin)
+    end
   end
 
-  test "get root path" do
+  test "get squid index path" do
     conn = call(PhoenixRouter, :get, "/main-router/squid-scope/index")
+    assert conn.status == 200
+    assert conn.resp_body == "users index"
+  end
+
+  test "get squid admin index path" do
+    conn = call(PhoenixRouter, :get, "/admin/admin-scope/index")
     assert conn.status == 200
     assert conn.resp_body == "users index"
   end
