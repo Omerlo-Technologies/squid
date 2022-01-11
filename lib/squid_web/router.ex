@@ -73,8 +73,6 @@ defmodule SquidWeb.Router do
         scope = Keyword.get(opts, :scope, :default)
 
         if scope in @squid_scopes do
-          require Logger
-          Logger.debug("SquidRouter - Import scope \"#{scope}\" for tentacle \"#{tentacle}\".")
           squid_routes(tentacle, scope)
         end
       end
