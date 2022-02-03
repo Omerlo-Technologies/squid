@@ -9,9 +9,11 @@ defmodule SquidWeb.RoutingTest do
 
   defmodule Router do
     use SquidWeb.Router
+    alias CustomController, as: CustomControllerAliased
 
     squid_scope "/squid-scope" do
       get("/index", CustomController, :index)
+      get("/aliased", CustomControllerAliased, :index)
     end
 
     squid_scope "/admin-scope", scope: :admin do
@@ -40,6 +42,12 @@ defmodule SquidWeb.RoutingTest do
   describe "routing" do
     test "get squid index path" do
       conn = call(PhoenixRouter, :get, "/main-router/squid-scope/index")
+      assert conn.status == 200
+      assert conn.resp_body == "users index"
+    end
+
+    test "get squid index path using aliased controller" do
+      conn = call(PhoenixRouter, :get, "/main-router/squid-scope/aliased")
       assert conn.status == 200
       assert conn.resp_body == "users index"
     end

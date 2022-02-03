@@ -123,9 +123,13 @@ defmodule SquidWeb.Router do
 
     Module.put_attribute(__CALLER__.module, :squid_scopes, scope)
 
+    routes =
+      do_squid_internal_scope(path, opts, do_block)
+      |> Macro.prewalk(&expand_alias(&1, __CALLER__))
+
     quote do
       def squid_routes(tentacle, unquote(scope)) do
-        routes = unquote(Macro.escape(do_squid_internal_scope(path, opts, do_block)))
+        routes = unquote(Macro.escape(routes))
 
         quote do
           scope "/", as: unquote(tentacle) do
@@ -137,6 +141,11 @@ defmodule SquidWeb.Router do
       unquote(do_squid_internal_scope(path, opts, do_block))
     end
   end
+
+  defp expand_alias({:__aliases__, _, _} = alias, env),
+    do: Macro.expand(alias, %{env | function: {:init, 1}})
+
+  defp expand_alias(other, _env), do: other
 
   defp do_squid_internal_scope(path, opts, do_block) do
     quote do
