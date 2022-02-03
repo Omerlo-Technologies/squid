@@ -7,6 +7,10 @@ defmodule SquidWeb.RoutingTest do
     def index(conn, _params), do: text(conn, "users index")
   end
 
+  Application.put_env(:squid, :tentacles, [:test])
+  Application.put_env(:squid, :scopes, admin: [prefix: "/admin"])
+  Application.put_env(:test, :squid, router: SquidWeb.RoutingTest.Router)
+
   defmodule Router do
     use SquidWeb.Router
     alias CustomController, as: CustomControllerAliased
@@ -16,53 +20,34 @@ defmodule SquidWeb.RoutingTest do
       get("/aliased", CustomControllerAliased, :index)
     end
 
-    squid_scope "/admin-scope", scope: :admin do
+    squid_scope "/admin-scope", as: :admin do
       get("/index", CustomController, :index)
     end
   end
 
-  Application.put_env(:squid, :tentacles, [:test])
-  Application.put_env(:test, :squid, router: Router)
-
-  defmodule PhoenixRouter do
-    use Phoenix.Router
-    require SquidWeb.Router
-
-    scope "/main-router" do
-      SquidWeb.Router.import_routes()
-    end
-
-    scope "/admin" do
-      SquidWeb.Router.import_routes(:admin)
-    end
-
-    SquidWeb.Router.import_routes(:unknow_scope)
-  end
+  SquidWeb.Router.create_dynamic_router([:test])
 
   describe "routing" do
-    test "get squid index path" do
-      conn = call(PhoenixRouter, :get, "/main-router/squid-scope/index")
+    setup do
+      %{router: SquidWeb.Router.dynamic_router()}
+    end
+
+    test "get squid index path", %{router: router} do
+      conn = call(router, :get, "/squid-scope/index")
       assert conn.status == 200
       assert conn.resp_body == "users index"
     end
 
-    test "get squid index path using aliased controller" do
-      conn = call(PhoenixRouter, :get, "/main-router/squid-scope/aliased")
+    test "get squid index path using aliased controller", %{router: router} do
+      conn = call(router, :get, "/squid-scope/aliased")
       assert conn.status == 200
       assert conn.resp_body == "users index"
     end
 
-    test "get squid admin index path" do
-      conn = call(PhoenixRouter, :get, "/admin/admin-scope/index")
+    test "get squid admin index path", %{router: router} do
+      conn = call(router, :get, "/admin/admin-scope/index")
       assert conn.status == 200
       assert conn.resp_body == "users index"
-    end
-  end
-
-  describe "squid scopes" do
-    test "Should contains admin and default" do
-      assert :default in Router.squid_scopes()
-      assert :admin in Router.squid_scopes()
     end
   end
 end

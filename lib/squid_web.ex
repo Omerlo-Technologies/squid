@@ -20,4 +20,19 @@ defmodule SquidWeb do
     |> Enum.map(&func.(&1))
     |> Enum.filter(&elem(&1, 1))
   end
+
+  @doc """
+  Creates the dynamic router.
+  """
+  def create_dynamic_router do
+    applications =
+      Application.started_applications()
+      |> MapSet.new(&elem(&1, 0))
+
+    Application.get_env(:squid, :tentacles)
+    |> Enum.filter(&MapSet.member?(applications, &1))
+    |> SquidWeb.Router.create_dynamic_router()
+
+    :ok
+  end
 end
