@@ -67,6 +67,11 @@ defmodule SquidWeb.Router do
     quote do
       use Phoenix.Router
 
+      import Plug.Conn
+      import Phoenix.Controller
+      import Phoenix.LiveView.Router
+
+      unquote(squid_pipelines(tentacles))
       unquote(squid_scopes(tentacles))
     end
     |> then(&Module.create(router, &1, Macro.Env.location(__ENV__)))
@@ -93,6 +98,12 @@ defmodule SquidWeb.Router do
     end)
   end
 
+  defp squid_pipelines(tentacles) do
+    SquidWeb.registered_routers()
+    |> Enum.filter(fn {tentacle, _} -> tentacle in tentacles end)
+    |> Enum.flat_map(fn {_tentacle, router} -> router.squid_pipelines() end)
+  end
+
   def dynamic_router, do: Application.get_env(:squid, :head_router, SquidWeb.HeadRouter)
 
   @doc """
@@ -111,6 +122,7 @@ defmodule SquidWeb.Router do
   """
   defmacro __using__(_) do
     Module.register_attribute(__CALLER__.module, :squid_scopes, accumulate: true)
+    Module.register_attribute(__CALLER__.module, :squid_pipelines, accumulate: true)
 
     quote do
       use Phoenix.Router
@@ -127,6 +139,7 @@ defmodule SquidWeb.Router do
   defmacro __before_compile__(_env) do
     quote do
       def squid_scopes, do: @squid_scopes
+      def squid_pipelines, do: @squid_pipelines
     end
   end
 
@@ -135,11 +148,11 @@ defmodule SquidWeb.Router do
 
   ## Examples
 
-    use SquidWeb.Router
+      use SquidWeb.Router
 
-    squid_scope "/my-tentacle-prefix" do
-      get "/page", MyTentacleWeb.PageController, :index
-    end
+      squid_scope "/my-tentacle-prefix" do
+        get "/page", MyTentacleWeb.PageController, :index
+      end
 
   This will register following helpers:
 
@@ -148,9 +161,9 @@ defmodule SquidWeb.Router do
 
   You could also create routes under a scope such as `admin`.
 
-    squid_scope "/my-tentacle-prefix", scope: :admin do
-      get "/users", MyTentacleWeb.UserController, :index
-    end
+      squid_scope "/my-tentacle-prefix", scope: :admin do
+        get "/users", MyTentacleWeb.UserController, :index
+      end
 
   ## Options
 
@@ -166,6 +179,68 @@ defmodule SquidWeb.Router do
     |> Macro.prewalk(&expand_alias(&1, __CALLER__))
     |> tap(&Module.put_attribute(__CALLER__.module, :squid_scopes, {curr_scope, &1}))
     |> then(&quote(do: scope(unquote(prefix), do: unquote(&1))))
+  end
+
+  @doc """
+  Helper to create a tentacle pipeline.
+
+  ## Examples
+
+      use SquidWeb.Router
+
+      squid_scope "/my-tentacle" do
+        pipe_through :my_tentacle_api
+
+        # your actions, phoenix scopes ...
+      end
+
+      squid_pipeline :my_tentacle_api do
+        plug :your_function
+      end
+
+      def your_function(conn, _opts) do
+        # Do what ever you want
+
+        conn
+      end
+
+  ## Limitations
+
+  Currently we don't fully support plug pipe_through. If you want to
+  pipe_through a function, you should write an explicit function name
+  as you can see in the next example. Otherwise, if multiples tentacles
+  router defined the same function name, you'll have a compiled error.
+
+
+      use SquidWeb.Router
+
+      squid_scope "/my-tentacle" do
+        scope "/" do
+          pipe_through :my_tentacle_function_name
+          # your actions, phoenix scopes ...
+        end
+
+        def my_tentacle_function_name(conn, _opts) do
+          # Do what ever you want
+          conn
+        end
+      end
+
+  """
+  defmacro squid_pipeline(plug, do: block) do
+    caller_module = __CALLER__.module
+
+    quote do
+      Phoenix.Router.pipeline unquote(plug) do
+        import unquote(caller_module)
+        unquote(block)
+      end
+    end
+    |> then(&Module.put_attribute(__CALLER__.module, :squid_pipelines, &1))
+
+    quote do
+      Phoenix.Router.pipeline(unquote(plug), do: unquote(block))
+    end
   end
 
   defp expand_alias({:__aliases__, _, _} = alias, env),
