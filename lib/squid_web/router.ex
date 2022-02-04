@@ -2,57 +2,109 @@ defmodule SquidWeb.Router do
   @moduledoc """
   Router helper to easily forward request to tentacle.
 
-  This module is use by your tentacle to register themself
-  into `Squid` but also by your router to automatically add
-  tentacles routing rules.
-
-  ## Example
+  ## Configurations
 
       # tentacle/config/config.exs
 
-      config :your_tentacle, :squid,
-        router: YourTentacle.Router
+      config :squid,
+        # head_router is optional (default: `SquidWeb.HeadRouter`)
+        head_router: YourHead.Router,
+        scopes:
+          admin:
+            prefix: "/admin"
+
+  > The main purpose of the HeadRouter is to dispatch requests and
+  > act as a proxy. We highly recommend to not use it in your code.
+  > Instead you could use router that `use SquidWeb.Router`.
+
+  You could also add specified configuration by env
+
+      # tentacles/config/prod.exs
+      config :squid,
+        head_router: YourTentacle.Router,
+        scopes:
+          dev:
+            disable: true
+
+  ## Examples
+
+      defmodule MyTentacleWeb.Router do
+        use SquidWeb.Router
+
+        squid_scope "/resources" do
+          get "/action", MyTentacleWeb.MyResourceController, :index
+        end
+
+        squid_scope "/resources", as: :admin do
+          get "/action", MyTentacleWeb.MyResourceAdminController, :index
+        end
+
+        squid_scope "/resources/dev", as: :dev do
+          get "/action", MyTentacleWeb.MyResourceController, :debug
+        end
+      end
+
+  With the configuration define in the previous chapter, this will generate
+  followings path:
+
+  - `/resources/action`
+  - `/admin/resources/action`
+  - `/resources/dev/action`
+
+  Those path could be generate by your router's helper (as phoenix does)
+
+      iex> MyTentacleWeb.Router.Helpers.custom_path(conn, :index)
+      "/resources/action"
+
+      iex> MyTentacleWeb.Router.Helpers.admin_custom_path(conn, :index)
+      "/admin/resources/action"
 
   """
 
-  @doc """
-  Use `SquidWeb.Router` in your main router to automatically add forward
-  rules to your tentacle.
-
-  ## Example
-
-      require SquidWeb.Router
-      SquidWeb.Router.import_routes()
-
-      # or with a scope
-
-      require SquidWeb.Router
-      SquidWeb.Router.import_routes(:admin)
-
-  """
-  defmacro import_routes(scope \\ :default) do
-    SquidWeb.registered_routers()
-    |> Enum.map(&tentacle_routes(&1, scope))
-  end
-
-  defp tentacle_routes({tentacle, router}, scope) do
-    opts = [tentacle: tentacle, scope: scope]
+  def create_dynamic_router(tentacles) do
+    router = dynamic_router()
 
     quote do
-      use unquote(router), unquote(Macro.escape(opts))
+      use Phoenix.Router
+
+      unquote(squid_scopes(tentacles))
     end
+    |> then(&Module.create(router, &1, Macro.Env.location(__ENV__)))
   end
+
+  defp squid_scopes(tentacles) do
+    scopes = Application.get_env(:squid, :scopes)
+
+    SquidWeb.registered_routers()
+    |> Enum.filter(fn {tentacle, _} -> tentacle in tentacles end)
+    |> Enum.flat_map(fn {tentacle, router} ->
+      router.squid_scopes()
+      |> Enum.map(fn {scope, block} -> {tentacle, scope, block} end)
+    end)
+    |> Enum.reject(fn {_tentacle, scope, _} -> scopes[scope][:disable] end)
+    |> Enum.map(fn {tentacle, scope, do_block} ->
+      prefix = scopes[scope][:prefix] || "/"
+
+      quote do
+        scope unquote(prefix), as: unquote(tentacle) do
+          unquote(do_block)
+        end
+      end
+    end)
+  end
+
+  def dynamic_router, do: Application.get_env(:squid, :head_router, SquidWeb.HeadRouter)
 
   @doc """
   Helper to create a tentacle router.
 
   ## Example
 
-    use SquidWeb.Router
+      use SquidWeb.Router
 
-    squid_scope "/my-tentacle-prefix" do
-      get "/page", MyTentacleWeb.PageController, :index
-    end
+      squid_scope "/my-tentacle-prefix" do
+        get "/page", MyTentacleWeb.PageController, :index
+      end
 
   > See `squid_scope/3` for more informations.
 
@@ -61,21 +113,12 @@ defmodule SquidWeb.Router do
     Module.register_attribute(__CALLER__.module, :squid_scopes, accumulate: true)
 
     quote do
-      import SquidWeb.Router
       use Phoenix.Router
+      import SquidWeb.Router
 
       import Plug.Conn
       import Phoenix.Controller
       import Phoenix.LiveView.Router
-
-      defmacro __using__(opts \\ []) do
-        tentacle = Keyword.fetch!(opts, :tentacle)
-        scope = Keyword.get(opts, :scope, :default)
-
-        if scope in @squid_scopes do
-          squid_routes(tentacle, scope)
-        end
-      end
 
       @before_compile SquidWeb.Router
     end
@@ -100,7 +143,7 @@ defmodule SquidWeb.Router do
 
   This will register following helpers:
 
-  - `CoreWeb.Router.Helpers.tentacle_app_page_path/2` and
+  - `HeadWeb.Router.Helpers.tentacle_app_page_path/2` and
   - `MyTentacleWeb.Router.Helpers.page_path/2`
 
   You could also create routes under a scope such as `admin`.
@@ -109,37 +152,20 @@ defmodule SquidWeb.Router do
       get "/users", MyTentacleWeb.UserController, :index
     end
 
-  You could then import those routes with `SquidWeb.Router.import(scope)`.
-
-  > More information on `SquidWeb.Router.import_routes/1`
-
   ## Options
 
   - `scope` define the scope of the router such as `api`, `web`, `admin`. (default: `:default`)
 
   """
   defmacro squid_scope(path, opts \\ [], do_block) do
-    scope = Keyword.get(opts, :scope, :default)
+    scopes = Application.get_env(:squid, :scopes)
+    curr_scope = Keyword.get(opts, :as, :default)
+    prefix = scopes[curr_scope][:prefix] || "/"
 
-    Module.put_attribute(__CALLER__.module, :squid_scopes, scope)
-
-    routes =
-      do_squid_internal_scope(path, opts, do_block)
-      |> Macro.prewalk(&expand_alias(&1, __CALLER__))
-
-    quote do
-      def squid_routes(tentacle, unquote(scope)) do
-        routes = unquote(Macro.escape(routes))
-
-        quote do
-          scope "/", as: unquote(tentacle) do
-            unquote(routes)
-          end
-        end
-      end
-
-      unquote(do_squid_internal_scope(path, opts, do_block))
-    end
+    do_squid_internal_scope(path, opts, do_block)
+    |> Macro.prewalk(&expand_alias(&1, __CALLER__))
+    |> tap(&Module.put_attribute(__CALLER__.module, :squid_scopes, {curr_scope, &1}))
+    |> then(&quote(do: scope(unquote(prefix), do: unquote(&1))))
   end
 
   defp expand_alias({:__aliases__, _, _} = alias, env),
