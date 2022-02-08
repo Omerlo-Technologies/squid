@@ -71,43 +71,39 @@ defmodule SquidWeb.RoutingTest do
 
   SquidWeb.Router.create_dynamic_router([:tentacle_a, :tentacle_b, :tentacle_c])
 
-  setup do
-    %{router: SquidWeb.Router.dynamic_router()}
-  end
-
   describe "routing" do
-    test "get squid index path", %{router: router} do
-      conn = call(router, :get, "/tentacle-a/index")
+    test "get squid index path" do
+      conn = call(SquidWeb.HeadRouter, :get, "/tentacle-a/index")
       assert conn.status == 200
       assert conn.resp_body == "users index"
     end
 
-    test "get squid index path using aliased controller", %{router: router} do
-      conn = call(router, :get, "/tentacle-a/aliased")
+    test "get squid index path using aliased controller" do
+      conn = call(SquidWeb.HeadRouter, :get, "/tentacle-a/aliased")
       assert conn.status == 200
       assert conn.resp_body == "users index"
     end
 
-    test "get squid admin index path", %{router: router} do
-      conn = call(router, :get, "/admin/tentacle-a/index")
+    test "get squid admin index path" do
+      conn = call(SquidWeb.HeadRouter, :get, "/admin/tentacle-a/index")
       assert conn.status == 200
       assert conn.resp_body == "users index"
     end
   end
 
   describe "pipeline" do
-    test "tentacle-a", %{router: router} do
-      conn = call(router, :get, "/tentacle-a/index")
+    test "tentacle-a" do
+      conn = call(SquidWeb.HeadRouter, :get, "/tentacle-a/index")
       assert conn.private[:pass_through] == :tentacle_a_browser
     end
 
-    test "tentacle-b", %{router: router} do
-      conn = call(router, :get, "/tentacle-b/index")
+    test "tentacle-b" do
+      conn = call(SquidWeb.HeadRouter, :get, "/tentacle-b/index")
       assert conn.private[:pass_through] == :tentacle_b_browser
     end
 
-    test "tentacle-c", %{router: router} do
-      conn = call(router, :get, "/tentacle-c/index")
+    test "tentacle-c" do
+      conn = call(SquidWeb.HeadRouter, :get, "/tentacle-c/index")
       assert conn.private[:pass_through] == :tentacle_c_browser
     end
   end
