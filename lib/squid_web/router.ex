@@ -7,8 +7,6 @@ defmodule SquidWeb.Router do
       # tentacle/config/config.exs
 
       config :squid,
-        # head_router is optional (default: `SquidWeb.HeadRouter`)
-        head_router: YourHead.Router,
         scopes:
           admin:
             prefix: "/admin"
@@ -62,8 +60,6 @@ defmodule SquidWeb.Router do
   """
 
   def create_dynamic_router(tentacles) do
-    router = dynamic_router()
-
     quote do
       use Phoenix.Router
 
@@ -74,7 +70,9 @@ defmodule SquidWeb.Router do
       unquote(squid_pipelines(tentacles))
       unquote(squid_scopes(tentacles))
     end
-    |> then(&Module.create(router, &1, Macro.Env.location(__ENV__)))
+    |> tap(fn _ -> Code.compiler_options(ignore_module_conflict: true) end)
+    |> then(&Module.create(SquidWeb.HeadRouter, &1, Macro.Env.location(__ENV__)))
+    |> tap(fn _ -> Code.compiler_options(ignore_module_conflict: false) end)
   end
 
   defp squid_scopes(tentacles) do
@@ -103,8 +101,6 @@ defmodule SquidWeb.Router do
     |> Enum.filter(fn {tentacle, _} -> tentacle in tentacles end)
     |> Enum.flat_map(fn {_tentacle, router} -> router.squid_pipelines() end)
   end
-
-  def dynamic_router, do: Application.get_env(:squid, :head_router, SquidWeb.HeadRouter)
 
   @doc """
   Helper to create a tentacle router.
@@ -156,7 +152,7 @@ defmodule SquidWeb.Router do
 
   This will register following helpers:
 
-  - `HeadWeb.Router.Helpers.tentacle_app_page_path/2` and
+  - `SquidWeb.HeadRouter.Helpers.tentacle_app_page_path/2` and
   - `MyTentacleWeb.Router.Helpers.page_path/2`
 
   You could also create routes under a scope such as `admin`.
