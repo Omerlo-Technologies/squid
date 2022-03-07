@@ -63,12 +63,22 @@ defmodule SquidWeb.Router do
     quote do
       use Phoenix.Router
 
+      require Logger
+
       import Plug.Conn
       import Phoenix.Controller
       import Phoenix.LiveView.Router
 
       unquote(squid_pipelines(tentacles))
       unquote(squid_scopes(tentacles))
+
+      @after_compile __MODULE__
+
+      def __after_compile__(env, _bytecode) do
+        Logger.debug("#{__MODULE__} - recompiled")
+
+        env
+      end
     end
     |> tap(fn _ -> Code.compiler_options(ignore_module_conflict: true) end)
     |> then(&Module.create(SquidWeb.HeadRouter, &1, Macro.Env.location(__ENV__)))
@@ -129,6 +139,13 @@ defmodule SquidWeb.Router do
       import Phoenix.LiveView.Router
 
       @before_compile SquidWeb.Router
+
+      @after_compile __MODULE__
+
+      def __after_compile__(env, _bytecode) do
+        SquidWeb.create_dynamic_router()
+        env
+      end
     end
   end
 
