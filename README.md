@@ -95,7 +95,7 @@ config :tentacle_b, :squid,
 defmodule TentacleB.Greetings do
   @behaviour SquidWeb.Partial
 
-  def render_partial(assigns), do:
+  def render_partial(assigns) do
     ~H"""
     <div>Hello <%= @user_name %> from tentacle B</div>
     """
