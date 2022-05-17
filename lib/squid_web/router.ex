@@ -13,13 +13,11 @@ defmodule SquidWeb.Router do
 
   > The main purpose of the HeadRouter is to dispatch requests and
   > act as a proxy. We highly recommend to not use it in your code.
-  > Instead you could use router that `use SquidWeb.Router`.
 
   You could also add specified configuration by env
 
       # tentacles/config/prod.exs
       config :squid,
-        head_router: YourTentacle.Router,
         scopes:
           dev:
             disable: true
