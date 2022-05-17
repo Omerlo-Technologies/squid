@@ -8,7 +8,7 @@ defmodule SquidWeb.PartialTest do
   defmodule TentacleA.Greetings do
     @behaviour SquidWeb.Partial
 
-    def render_partial(assigns) do
+    def render(assigns) do
       ~H"""
       Hello <%= @user_name %> from tentacle A
       """
@@ -18,7 +18,7 @@ defmodule SquidWeb.PartialTest do
   defmodule TentacleB.Greetings do
     @behaviour SquidWeb.Partial
 
-    def render_partial(assigns) do
+    def render(assigns) do
       ~H"""
       Hello <%= @user_name %> from tentacle B
       """
@@ -52,11 +52,15 @@ defmodule SquidWeb.PartialTest do
   end
 
   test "Rendering a partial" do
-    html = Partial.render(:greetings_builder, %{user_name: "Squid's King"}) |> h2s()
+    html = Partial.render(%{partial: :greetings_builder, user_name: "Squid's King"}) |> h2s()
 
     assert html == """
-           Hello Squid&amp;#39;s King from tentacle B
-           Hello Squid&amp;#39;s King from tentacle A
+
+             Hello Squid&#39;s King from tentacle B
+
+
+             Hello Squid&#39;s King from tentacle A
+
            """
   end
 

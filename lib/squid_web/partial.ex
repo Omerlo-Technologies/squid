@@ -17,7 +17,7 @@ defmodule SquidWeb.Partial do
       defmodule TentacleA.Greetings do
         @behaviour SquidWeb.Partial
 
-        def render_partial(assigns) do
+        def render(assigns) do
           ~H"""
           <div>Hello <%= @user_name %> from tentacle A</div>
           """
@@ -34,7 +34,7 @@ defmodule SquidWeb.Partial do
       defmodule TentacleB.Greetings do
         @behaviour SquidWeb.Partial
 
-        def render_partial(assigns) do
+        def render(assigns), do:
           ~H"""
           <div>Hello <%= @user_name %> from tentacle B</div>
           """
@@ -43,7 +43,7 @@ defmodule SquidWeb.Partial do
 
   Then in your page html
 
-      <%= Partial.render(:greetings_builder, %{user_name: "Squid's King"}) %>
+      <SquidWeb.Partial.render partial={:greetings_builder} user_name="Squid's King" />
 
   This will generate the following html
 
@@ -60,7 +60,7 @@ defmodule SquidWeb.Partial do
 
   '''
 
-  @callback render_partial(assigns :: map()) :: any()
+  @callback render(assigns :: map()) :: any()
 
   import Phoenix.LiveView.Helpers
 
@@ -79,25 +79,22 @@ defmodule SquidWeb.Partial do
     |> then(&Application.put_env(:squid, :private_partials, &1))
   end
 
-  def render(partial, assigns) when is_atom(partial) do
+  def render(assigns) do
+    partial = Map.fetch!(assigns, :partial)
     partial_modules = Application.get_env(:squid, :private_partials)[partial]
 
     ~H"""
-    <%= Enum.map(partial_modules, &do_render(&1, assigns)) %>
+    <%= for partial_part <- partial_modules do %>
+      <%= partial_part.render(assigns) %>
+    <% end %>
     """
-  end
-
-  defp do_render(module, assigns) do
-    assigns
-    |> module.render_partial()
-    |> Phoenix.HTML.Safe.to_iodata()
   end
 
   defp to_partial_modules({partial_name, partial_modules}) do
     partial_modules =
       Enum.map(partial_modules, fn {module, _opts} ->
-        unless function_exported?(module, :render_partial, 1) do
-          Logger.error("#{module} - function render_partial/1 is not defined")
+        unless function_exported?(module, :render, 1) do
+          Logger.error("#{module} - function render/1 is not defined")
         end
 
         module

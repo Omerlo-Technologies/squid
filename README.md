@@ -76,7 +76,7 @@ config :tentacle_a, :squid,
 defmodule TentacleA.Greetings do
   @behaviour SquidWeb.Partial
 
-  def render_partial(assigns) do
+  def render(assigns) do
     ~H"""
     <div>Hello <%= @user_name %> from tentacle A</div>
     """
@@ -95,7 +95,7 @@ config :tentacle_b, :squid,
 defmodule TentacleB.Greetings do
   @behaviour SquidWeb.Partial
 
-  def render_partial(assigns) do
+  def render(assigns), do:
     ~H"""
     <div>Hello <%= @user_name %> from tentacle B</div>
     """
@@ -106,7 +106,7 @@ end
 You could then generate this partial view using the following code
 
 ```elixir
-<%= Partial.render(:greetings_builder, %{user_name: "Squid's King"}) %>
+<SquidWeb.Partial.render partial={:greetings_builder} user_name="Squid's King" />
 ```
 
 ```html
