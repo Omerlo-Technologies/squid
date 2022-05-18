@@ -94,6 +94,7 @@ defmodule SquidWeb.Partial do
     partial_modules =
       Enum.map(partial_modules, fn {module, _opts} ->
         unless function_exported?(module, :render, 1) do
+          Code.ensure_loaded(module)
           Logger.error("#{module} - function render/1 is not defined")
         end
 
