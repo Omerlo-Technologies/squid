@@ -6,13 +6,6 @@ defmodule SquidWeb do
     load_tentacles_cfg(:router)
   end
 
-  @doc """
-  Return registered menu builders.
-  """
-  def registered_menu_builders() do
-    load_tentacles_cfg(:menu)
-  end
-
   defp load_tentacles_cfg(config_key) do
     func = &{&1, Application.get_env(&1, :squid)[config_key]}
 

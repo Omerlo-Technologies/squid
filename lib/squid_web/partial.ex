@@ -64,8 +64,6 @@ defmodule SquidWeb.Partial do
 
   import Phoenix.LiveView.Helpers
 
-  require Logger
-
   def preload_partials() do
     Application.get_env(:squid, :tentacles)
     |> Enum.flat_map(fn otp_cfg ->
@@ -91,16 +89,7 @@ defmodule SquidWeb.Partial do
   end
 
   defp to_partial_modules({partial_name, partial_modules}) do
-    partial_modules =
-      Enum.map(partial_modules, fn {module, _opts} ->
-        unless function_exported?(module, :render, 1) do
-          Code.ensure_loaded(module)
-          Logger.error("#{module} - function render/1 is not defined")
-        end
-
-        module
-      end)
-
+    partial_modules = Enum.map(partial_modules, &elem(&1, 0))
     {partial_name, partial_modules}
   end
 
