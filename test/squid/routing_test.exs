@@ -8,7 +8,12 @@ defmodule SquidWeb.RoutingTest do
   end
 
   Application.put_env(:squid, :tentacles, [:tentacle_a, :tentacle_b, :tentacle_c])
-  Application.put_env(:squid, :scopes, admin: [prefix: "/admin"])
+
+  Application.put_env(:squid, :scopes,
+    admin: [prefix: "/admin"],
+    tentacle_prefixed: [prefix: "/{{tentacle_name}}/prefixed"]
+  )
+
   Application.put_env(:tentacle_a, :squid, router: SquidWeb.RoutingTest.RouterA)
   Application.put_env(:tentacle_b, :squid, router: SquidWeb.RoutingTest.RouterB)
   Application.put_env(:tentacle_c, :squid, router: SquidWeb.RoutingTest.RouterC)
@@ -28,6 +33,10 @@ defmodule SquidWeb.RoutingTest do
     end
 
     squid_scope "/tentacle-a", as: :admin do
+      get("/index", CustomController, :index)
+    end
+
+    squid_scope "/", as: :tentacle_prefixed do
       get("/index", CustomController, :index)
     end
 
@@ -82,6 +91,11 @@ defmodule SquidWeb.RoutingTest do
       conn = call(SquidWeb.HeadRouter, :get, "/tentacle-a/aliased")
       assert conn.status == 200
       assert conn.resp_body == "users index"
+    end
+
+    test "get squid index path using prefixed_tentacle" do
+      conn = call(SquidWeb.HeadRouter, :get, "/tentacle-a/prefixed/index")
+      assert conn.status == 200
     end
 
     test "get squid admin index path" do
