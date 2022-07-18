@@ -1,6 +1,6 @@
 defmodule SquidWeb.Router do
   @moduledoc """
-  Router helper to easily forward request to tentacle.
+  Router helper to forward request to tentacle.
 
   ## Configurations
 
@@ -10,9 +10,15 @@ defmodule SquidWeb.Router do
         scopes:
           admin:
             prefix: "/admin"
+          prefixed_tentacle:
+            prefix: "/{{tentacle_name}}/api"
 
-  > The main purpose of the HeadRouter is to dispatch requests and
-  > act as a proxy. We highly recommend to not use it in your code.
+  `{{tentacle_name}}` is a reserved keyword that will be replace with your
+  tentacle name (also know as the otp app). The app's name will be formated
+  to kebab case.
+
+  Using the previous example, an app `my_app` with a `prefixed_tentacle`
+  squid's scope  will generate a phoenix scope prefiexed by `/my-app/api`.
 
   You could also add specified configuration by env
 
@@ -57,6 +63,10 @@ defmodule SquidWeb.Router do
 
   """
 
+  @type tentacle_app :: atom()
+  @type ast() :: any()
+
+  @spec create_dynamic_router([tentacle_app()]) :: ast()
   def create_dynamic_router(tentacles) do
     quote do
       use Phoenix.Router
@@ -85,6 +95,8 @@ defmodule SquidWeb.Router do
     |> Enum.reject(fn {_tentacle, scope, _} -> scopes[scope][:disable] end)
     |> Enum.map(fn {tentacle, scope, do_block} ->
       prefix = scopes[scope][:prefix] || "/"
+      tentacle_name = tentacle |> Atom.to_string() |> String.replace("_", "-")
+      prefix = String.replace(prefix, "{{tentacle_name}}", tentacle_name)
 
       quote do
         scope unquote(prefix), as: unquote(tentacle) do
