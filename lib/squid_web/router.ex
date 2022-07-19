@@ -31,7 +31,7 @@ defmodule SquidWeb.Router do
   ## Examples
 
       defmodule MyTentacleWeb.Router do
-        use SquidWeb.Router
+        use SquidWeb.Router, otp_app: :my_tentacle
 
         squid_scope "/resources" do
           get "/action", MyTentacleWeb.MyResourceController, :index
@@ -89,14 +89,18 @@ defmodule SquidWeb.Router do
     SquidWeb.registered_routers()
     |> Enum.filter(fn {tentacle, _} -> tentacle in tentacles end)
     |> Enum.flat_map(fn {tentacle, router} ->
+      [otp_app] = router.__info__(:attributes)[:otp_app]
+
+      if tentacle != otp_app do
+        raise "Squid: tentacle #{tentacle} have router #{router} with invalid otp_app registered (#{otp_app})"
+      end
+
       router.squid_scopes()
       |> Enum.map(fn {scope, block} -> {tentacle, scope, block} end)
     end)
     |> Enum.reject(fn {_tentacle, scope, _} -> scopes[scope][:disable] end)
     |> Enum.map(fn {tentacle, scope, do_block} ->
-      prefix = scopes[scope][:prefix] || "/"
-      tentacle_name = tentacle |> Atom.to_string() |> String.replace("_", "-")
-      prefix = String.replace(prefix, "{{tentacle_name}}", tentacle_name)
+      prefix = build_tentacle_prefix(tentacle, scopes[scope][:prefix])
 
       quote do
         scope unquote(prefix), as: unquote(tentacle) do
@@ -117,7 +121,7 @@ defmodule SquidWeb.Router do
 
   ## Example
 
-      use SquidWeb.Router
+      use SquidWeb.Router, otp_app: :my_tentacle
 
       squid_scope "/my-tentacle-prefix" do
         get "/page", MyTentacleWeb.PageController, :index
@@ -126,9 +130,14 @@ defmodule SquidWeb.Router do
   > See `squid_scope/3` for more informations.
 
   """
-  defmacro __using__(_) do
+  defmacro __using__(opts) do
+    otp_app =
+      opts[:otp_app] || raise ":otp_app option is required by squid router (#{__CALLER__.module})"
+
     Module.register_attribute(__CALLER__.module, :squid_scopes, accumulate: true)
     Module.register_attribute(__CALLER__.module, :squid_pipelines, accumulate: true)
+    Module.register_attribute(__CALLER__.module, :otp_app, persist: true)
+    Module.put_attribute(__CALLER__.module, :otp_app, otp_app)
 
     quote do
       use Phoenix.Router
@@ -154,7 +163,7 @@ defmodule SquidWeb.Router do
 
   ## Examples
 
-      use SquidWeb.Router
+      use SquidWeb.Router, otp_app: :my_tentacle
 
       squid_scope "/my-tentacle-prefix" do
         get "/page", MyTentacleWeb.PageController, :index
@@ -179,7 +188,14 @@ defmodule SquidWeb.Router do
   defmacro squid_scope(path, opts \\ [], do_block) do
     scopes = Application.get_env(:squid, :scopes)
     curr_scope = Keyword.get(opts, :as, :default)
-    prefix = scopes[curr_scope][:prefix] || "/"
+
+    otp_app = Module.get_attribute(__CALLER__.module, :otp_app)
+    prefix = build_tentacle_prefix(otp_app, scopes[curr_scope][:prefix])
+    # IO.inspect(__CALLER__)
+    # {:ok, tentacle_name} = :application.get_application(__CALLER__.module)
+    # prefix = String.replace(prefix, "{{tentacle_name}}", Atom.to_string(tentacle_name))
+    #
+    # IO.inspect(prefix, label: "PREFIX")
 
     do_squid_internal_scope(path, opts, do_block)
     |> Macro.prewalk(&expand_alias(&1, __CALLER__))
@@ -192,7 +208,7 @@ defmodule SquidWeb.Router do
 
   ## Examples
 
-      use SquidWeb.Router
+      use SquidWeb.Router, otp_app: :my_tentacle
 
       squid_scope "/my-tentacle" do
         pipe_through :my_tentacle_api
@@ -218,7 +234,7 @@ defmodule SquidWeb.Router do
   router defined the same function name, you'll have a compiled error.
 
 
-      use SquidWeb.Router
+      use SquidWeb.Router, otp_app: :my_tentacle
 
       squid_scope "/my-tentacle" do
         scope "/" do
@@ -260,5 +276,12 @@ defmodule SquidWeb.Router do
         unquote(do_block)
       end
     end
+  end
+
+  defp build_tentacle_prefix(_tentacle, nil = _prefix), do: "/"
+
+  defp build_tentacle_prefix(tentacle, prefix) do
+    tentacle_name = String.replace("#{tentacle}", "_", "-")
+    String.replace(prefix, "{{tentacle_name}}", tentacle_name)
   end
 end

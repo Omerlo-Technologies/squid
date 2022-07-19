@@ -19,7 +19,7 @@ defmodule SquidWeb.RoutingTest do
   Application.put_env(:tentacle_c, :squid, router: SquidWeb.RoutingTest.RouterC)
 
   defmodule RouterA do
-    use SquidWeb.Router
+    use SquidWeb.Router, otp_app: :tentacle_a
     alias CustomController, as: CustomControllerAliased
 
     squid_pipeline :tentacle_a_browser do
@@ -46,7 +46,7 @@ defmodule SquidWeb.RoutingTest do
   end
 
   defmodule RouterB do
-    use SquidWeb.Router
+    use SquidWeb.Router, otp_app: :tentacle_b
 
     squid_pipeline :tentacle_b_browser do
       plug(:add_header)
@@ -63,7 +63,7 @@ defmodule SquidWeb.RoutingTest do
   end
 
   defmodule RouterC do
-    use SquidWeb.Router
+    use SquidWeb.Router, otp_app: :tentacle_c
 
     squid_scope "/tentacle-c" do
       pipe_through(:tentacle_c_add_header)
