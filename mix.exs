@@ -4,7 +4,7 @@ defmodule Squid.MixProject do
   def project do
     [
       app: :squid,
-      version: "0.3.3",
+      version: "0.1.0",
       build_path: "./_build",
       config_path: "./config/config.exs",
       deps_path: "./deps",
@@ -12,7 +12,9 @@ defmodule Squid.MixProject do
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      docs: docs()
+      docs: docs(),
+      description: description(),
+      package: package()
     ]
   end
 
@@ -38,6 +40,20 @@ defmodule Squid.MixProject do
     [
       main: "readme",
       extras: ["README.md"]
+    ]
+  end
+
+  defp description do
+    "Squid is a framework that helps you divide your application into multiple " <>
+      "small contexts and/or applications called `tentacles`."
+  end
+
+  defp package do
+    [
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE.md),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/Omerlo-Technologies/squid"},
+      source_url: "https://github.com/Omerlo-Technologies/squid"
     ]
   end
 end

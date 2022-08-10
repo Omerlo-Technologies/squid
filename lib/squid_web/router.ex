@@ -191,11 +191,6 @@ defmodule SquidWeb.Router do
 
     otp_app = Module.get_attribute(__CALLER__.module, :otp_app)
     prefix = build_tentacle_prefix(otp_app, scopes[curr_scope][:prefix])
-    # IO.inspect(__CALLER__)
-    # {:ok, tentacle_name} = :application.get_application(__CALLER__.module)
-    # prefix = String.replace(prefix, "{{tentacle_name}}", Atom.to_string(tentacle_name))
-    #
-    # IO.inspect(prefix, label: "PREFIX")
 
     do_squid_internal_scope(path, opts, do_block)
     |> Macro.prewalk(&expand_alias(&1, __CALLER__))
