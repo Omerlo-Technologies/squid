@@ -3,7 +3,7 @@ defmodule SquidWeb.PartialTest do
 
   alias SquidWeb.Partial
 
-  import Phoenix.LiveView.Helpers
+  import Phoenix.Component
 
   defmodule TentacleA.Greetings do
     @behaviour SquidWeb.Partial

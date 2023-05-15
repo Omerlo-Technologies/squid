@@ -28,11 +28,11 @@ defmodule Squid.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:phoenix, "~> 1.6"},
-      {:phoenix_live_view, "~> 0.17.0"},
+      {:phoenix, "~> 1.7"},
+      {:phoenix_live_view, "~> 0.18.0"},
       {:phoenix_html, "~> 3.1"},
       {:jason, "~> 1.3", optional: true},
-      {:ex_doc, "~> 0.28.2", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.29.4", only: :dev, runtime: false}
     ]
   end
 

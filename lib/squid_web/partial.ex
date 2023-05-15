@@ -62,7 +62,7 @@ defmodule SquidWeb.Partial do
 
   @callback render(assigns :: map()) :: any()
 
-  import Phoenix.LiveView.Helpers
+  import Phoenix.Component
 
   def preload_partials() do
     Application.get_env(:squid, :tentacles)
@@ -80,10 +80,11 @@ defmodule SquidWeb.Partial do
   def render(assigns) do
     partial = Map.fetch!(assigns, :partial)
     partial_modules = Application.get_env(:squid, :private_partials)[partial]
+    assigns = %{assigns: assigns, partial_modules: partial_modules}
 
     ~H"""
-    <%= for partial_part <- partial_modules do %>
-      <%= partial_part.render(assigns) %>
+    <%= for partial_part <- @partial_modules do %>
+      <%= partial_part.render(@assigns) %>
     <% end %>
     """
   end
