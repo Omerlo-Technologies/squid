@@ -67,14 +67,6 @@ defmodule SquidWeb.Endpoint do
         endpoint = Application.get_env(unquote(otp_app), :squid)[:endpoint]
         endpoint.config(key, default)
       end
-
-      def url do
-        Phoenix.Config.cache(
-          config(:endpoint),
-          :__phoenix_url__,
-          &Phoenix.Endpoint.Supervisor.url/1
-        )
-      end
     end
   end
 end
