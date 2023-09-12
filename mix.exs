@@ -4,7 +4,7 @@ defmodule Squid.MixProject do
   def project do
     [
       app: :squid,
-      version: "0.1.2",
+      version: "0.1.3",
       build_path: "./_build",
       config_path: "./config/config.exs",
       deps_path: "./deps",
@@ -29,7 +29,7 @@ defmodule Squid.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:phoenix_live_view, "~> 0.18.0"},
+      {:phoenix_live_view, "~> 0.19"},
       {:phoenix_html, "~> 3.1"},
       {:jason, "~> 1.3", optional: true},
       {:ex_doc, "~> 0.29.4", only: :dev, runtime: false}
