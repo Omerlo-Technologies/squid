@@ -66,6 +66,7 @@ defmodule SquidWeb.Partial do
 
   def preload_partials() do
     Application.get_env(:squid, :tentacles)
+    |> filter_applications()
     |> Enum.flat_map(fn otp_cfg ->
       otp_cfg
       |> Application.get_env(:squid)
@@ -87,6 +88,12 @@ defmodule SquidWeb.Partial do
       <%= partial_part.render(@assigns) %>
     <% end %>
     """
+  end
+
+  def filter_applications(applications) do
+    Enum.filter(applications, fn app ->
+      Application.spec(app) || Application.get_env(app, :squid)[:force]
+    end)
   end
 
   defp to_partial_modules({partial_name, partial_modules}) do

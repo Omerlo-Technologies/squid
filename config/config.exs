@@ -1,6 +1,6 @@
-import Mix.Config
+import Config
 
 config :phoenix, :json_library, Jason
 
 # Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, level: :warning
