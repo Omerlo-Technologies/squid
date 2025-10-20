@@ -1,117 +1,255 @@
 # Squid
 
-Squid is a framework that helps you divide your application into multiple
-small contexts and/or applications called `tentacles`.
+A modular Phoenix framework for building applications with independent, composable sub-applications called **tentacles**.
 
-Each `tentacle` defines its own logic (router, live view ...).
+Squid enables you to organize your Phoenix application into smaller, focused contexts that can be developed, tested, and deployed independently while sharing a common runtime. Each tentacle defines its own routes, controllers, and views, with the ability to configure different URL prefixes per deployment environment.
+
+## Why Squid?
+
+Phoenix's `forward/4` macro doesn't work properly with LiveView because it loses important routing metadata that LiveView depends on for features like live navigation, URL generation, and route helpers. This makes it difficult to build modular Phoenix applications with multiple independent routers, especially in umbrella apps or when organizing code by domain.
+
+**Squid solves this problem** by directly calling each router's `__match_route__/3` function instead of using `forward`, preserving all the metadata that LiveView needs. This allows you to:
+
+- Use multiple independent routers with full LiveView support
+- Forward requests between routers without breaking live navigation
+- Build truly modular Phoenix applications with proper encapsulation
+- Organize umbrella apps where each sub-app has its own router and LiveViews
+
+## Features
+
+- **Modular Routing**: Each tentacle has its own router with configurable prefixes
+- **Dynamic Scopes**: Deploy the same tentacle code under different URL structures
+- **Composable Partials**: Build UI components by aggregating views from multiple tentacles
+- **Flexible Architecture**: Support for multi-tenant, microservices-style, or domain-driven designs
+- **Full LiveView Support**: Unlike `forward/4`, Squid preserves all routing metadata for LiveView
 
 ## Installation
 
-This framework is in development and isn't fully ready for production yet.
+Add `squid` to your dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:squid,
-      git: "https://github.com/drakkardigital/squid", tag: "0.3.0"},
+    {:squid, "~> 0.2.0"}
   ]
 end
 ```
 
-## HeadRouter
+## Quick Start
+
+### 1. Configure Your Tentacles
+
+Register all tentacles in your main application config:
 
 ```elixir
 # config/config.exs
-
-config :squid, tentacles: [:tentacle_a, :tentacle_b]
-
-
-# apps/tentacle_a/config/config.exs
-
-config :tentacle_a, :squid,
-  router: Tentacle1Web.Router
-
-# apps/tentacle_b/config/config.exs
-
-config :tentacle_b, :squid,
-  router: Tentacle2Web.Router
-
+config :squid,
+  tentacles: [:shop, :admin, :billing]
 ```
 
-> Learn more about `SquidWeb.Router`.
+### 2. Create a Tentacle Router
 
-Then create the dynamic router with the following code.
+Each tentacle defines its own router using `Squid.Router`:
 
 ```elixir
-defmodule YourHeadApp do
-  use Application
+# lib/shop/router.ex
+defmodule Shop.Router do
+  use Squid.Router, otp_app: :shop
 
-  def start(_type, args) do
-    # The next line is REALLY important
-    SquidWeb.create_dynamic_router()
-
-    children = []
-    Supervisor.start_link(children, strategy: :one_for_one)
+  squid_scope "/products" do
+    get "/", Shop.ProductController, :index
+    get "/:id", Shop.ProductController, :show
   end
 end
 ```
 
-> Learn more about squid routing system on the `SquidWeb.Router` module.
-
-
-## Partials
-
-One of the major feature of Squid is to construct partials using your
-tentacles configurations. This is really usefull for building a menu or
-any composed view.
+Register the router in the tentacle's config:
 
 ```elixir
-# in apps/tentacle_a/config/config.exs
-config :tentacle_a, :squid,
+# In shop's config
+config :shop, :squid,
+  router: Shop.Router
+```
+
+### 3. Add Squid Router to Your Endpoint
+
+Replace the standard Phoenix router with `Squid.Router` in your endpoint:
+
+```elixir
+# lib/my_app_web/endpoint.ex
+defmodule MyAppWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :my_app
+
+  # Instead of `plug MyAppWeb.Router`
+  plug Squid.Router
+end
+```
+
+## Configurable Scopes
+
+Define scopes to deploy tentacles with different URL prefixes:
+
+```elixir
+# config/config.exs
+config :squid,
+  scopes: [
+    default: [prefix: "/"],
+    admin: [prefix: "/admin"],
+    api: [prefix: "/api/v1"],
+    tenant: [prefix: "/{{tentacle_name}}"]
+  ]
+```
+
+Use scopes in your tentacle routers:
+
+```elixir
+defmodule Shop.Router do
+  use Squid.Router, otp_app: :shop
+
+  # Public routes at /products
+  squid_scope "/products" do
+    get "/", Shop.ProductController, :index
+  end
+
+  # Admin routes at /admin/products
+  squid_scope "/products", as: :admin do
+    post "/", Shop.AdminController, :create
+    delete "/:id", Shop.AdminController, :delete
+  end
+
+  # API routes at /api/v1/products
+  squid_scope "/products", as: :api do
+    get "/", Shop.API.ProductController, :index
+  end
+end
+```
+
+### Dynamic Tentacle Names
+
+Use the `{{tentacle_name}}` placeholder to create tenant-specific routes:
+
+```elixir
+config :squid,
+  scopes: [
+    tenant: [prefix: "/{{tentacle_name}}"]
+  ]
+
+# In :billing_system tentacle with `as: :tenant`
+# Routes will be prefixed with /billing-system
+```
+
+The tentacle name is automatically converted from `snake_case` to `kebab-case`.
+
+## Partials System
+
+Build composable UI components by aggregating partials from multiple tentacles.
+
+### Define Partials in Tentacles
+
+```elixir
+# apps/shop/config/config.exs
+config :shop, :squid,
+  router: Shop.Router,
   partials: %{
-    greetings_builder: {TentacleA.Greetings, priority: 1}
+    navigation: {Shop.Navigation, priority: 1}
   }
 
-# in apps/tentacle_a/lib/tentacle_a_web/greetings.ex
-defmodule TentacleA.Greetings do
-  @behaviour SquidWeb.Partial
+# apps/shop/lib/shop/navigation.ex
+defmodule Shop.Navigation do
+  @behaviour Squid.Partial
 
   def render(assigns) do
     ~H"""
-    <div>Hello <%= @user_name %> from tentacle A</div>
+    <a href="/products">Products</a>
     """
   end
 end
 ```
 
 ```elixir
-# in apps/tentacle_b/config/config.exs
-config :tentacle_b, :squid,
-  partial: %{
-    greetings_builder: {TentacleB.Greetings, priority: 2}
+# apps/admin/config/config.exs
+config :admin, :squid,
+  router: Admin.Router,
+  partials: %{
+    navigation: {Admin.Navigation, priority: 2}
   }
 
-# in apps/tentacle_b/lib/tentacle_b_web/greetings.ex
-defmodule TentacleB.Greetings do
-  @behaviour SquidWeb.Partial
+# apps/admin/lib/admin/navigation.ex
+defmodule Admin.Navigation do
+  @behaviour Squid.Partial
 
-  def render(assigns), do:
+  def render(assigns) do
     ~H"""
-    <div>Hello <%= @user_name %> from tentacle B</div>
+    <a href="/admin/users">Admin</a>
     """
   end
 end
 ```
 
-You could then generate this partial view using the following code
+### Render Aggregated Partials
 
 ```elixir
-<SquidWeb.Partial.render partial={:greetings_builder} user_name="Squid's King" />
+<Squid.Partial.render partial={:navigation} current_user={@current_user} />
 ```
 
-```html
-<div>Hello Squid's King from tentacle B</div>
-<div>Hello Squid's King from tentacle A</div>
+Partials are rendered in priority order (highest first), allowing you to control the composition of your UI.
+
+## Documentation
+
+For detailed documentation, see:
+
+- `Squid.Router` - Architecture overview and plug configuration
+- `Squid.Router.Scope` - Complete guide to scopes and `squid_scope/3`
+- `Squid.Partial` - Composable UI partials system
+
+Or generate documentation locally:
+
+```bash
+mix docs
 ```
 
-> Learn more about squid partials system on the `SquidWeb.Partial` module.
+## Use Cases
+
+### Multi-Tenant Applications
+
+Deploy the same tentacle code with different URL prefixes per tenant:
+
+```elixir
+config :squid,
+  scopes: [
+    tenant_a: [prefix: "/tenant-a"],
+    tenant_b: [prefix: "/tenant-b"]
+  ]
+```
+
+### Microservices-Style Monolith
+
+Organize your application into independent services while keeping them in a single runtime:
+
+```elixir
+config :squid,
+  tentacles: [:auth, :payments, :notifications, :analytics]
+```
+
+### Domain-Driven Design
+
+Structure your application by business domains, each with its own router and views:
+
+```elixir
+config :squid,
+  tentacles: [:orders, :inventory, :shipping, :billing]
+```
+
+## Development Status
+
+Squid is currently in active development. While functional, the API may change before reaching v1.0. Feedback and contributions are welcome!
+
+## License
+
+MIT License - see [LICENSE.md](LICENSE.md) for details.
+
+## Links
+
+- [GitHub Repository](https://github.com/Omerlo-Technologies/squid)
+- [Hex Package](https://hex.pm/packages/squid)
+- [Documentation](https://hexdocs.pm/squid)
