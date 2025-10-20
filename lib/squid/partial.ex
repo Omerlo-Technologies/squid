@@ -1,4 +1,4 @@
-defmodule SquidWeb.Partial do
+defmodule Squid.Partial do
   @moduledoc ~S'''
   Partials are HTML snippets that squid can render according to their priority.
   Partials are useful to build navigation elements such as menus from your
@@ -15,7 +15,7 @@ defmodule SquidWeb.Partial do
 
       # in app/tentacle_a/lib/tentacle_a_web/greetings.ex
       defmodule TentacleA.Greetings do
-        @behaviour SquidWeb.Partial
+        @behaviour Squid.Partial
 
         def render(assigns) do
           ~H"""
@@ -32,7 +32,7 @@ defmodule SquidWeb.Partial do
 
       # in app/tentacle_b/lib/tentacle_b_web/greetings.ex
       defmodule TentacleB.Greetings do
-        @behaviour SquidWeb.Partial
+        @behaviour Squid.Partial
 
         def render(assigns), do:
           ~H"""
@@ -43,7 +43,7 @@ defmodule SquidWeb.Partial do
 
   Then in your page html
 
-      <SquidWeb.Partial.render partial={:greetings_builder} user_name="Squid's King" />
+      <Squid.Partial.render partial={:greetings_builder} user_name="Squid's King" />
 
   This will generate the following html
 

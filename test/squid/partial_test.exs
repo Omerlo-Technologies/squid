@@ -1,12 +1,12 @@
-defmodule SquidWeb.PartialTest do
-  use ExUnit.Case
+defmodule Squid.PartialTest do
+  use ExUnit.Case, async: false
 
-  alias SquidWeb.Partial
+  alias Squid.Partial
 
   import Phoenix.Component
 
   defmodule TentacleA.Greetings do
-    @behaviour SquidWeb.Partial
+    @behaviour Squid.Partial
 
     def render(assigns) do
       ~H"""
@@ -16,7 +16,7 @@ defmodule SquidWeb.PartialTest do
   end
 
   defmodule TentacleB.Greetings do
-    @behaviour SquidWeb.Partial
+    @behaviour Squid.Partial
 
     def render(assigns) do
       ~H"""
@@ -52,6 +52,9 @@ defmodule SquidWeb.PartialTest do
   end
 
   test "Rendering a partial" do
+    dbg(Application.get_env(:squid, :tentacles))
+    dbg(Application.get_env(:squid, :private_partials))
+
     html = Partial.render(%{partial: :greetings_builder, user_name: "Squid's King"}) |> h2s()
 
     assert html == """

@@ -1,4 +1,4 @@
-defmodule SquidWeb.Endpoint do
+defmodule Squid.Endpoint do
   @moduledoc """
   Endpoint helper to import everthing needs as `Phoenix.Endpoint` does.
 
@@ -6,15 +6,15 @@ defmodule SquidWeb.Endpoint do
 
       config :your_tentacle, :squid,
         pubsub_server: YourPubSub,
-        endpoint: ShellWeb.Endpoint
+        endpoint: Shell.Endpoint
 
   The specified app should be the one that defined generic phoenix things
   such as the `PubSub` server.
 
   ## Examples
 
-      defmodule TentacleWeb.Endpoint do
-        use SquidWeb.Endpoint, otp_app: :your_tentacle
+      defmodule Tentacle.Endpoint do
+        use Squid.Endpoint, otp_app: :your_tentacle
       end
 
   """
