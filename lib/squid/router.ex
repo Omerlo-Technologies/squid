@@ -134,7 +134,7 @@ defmodule Squid.Router do
 
   @impl Plug
   def call(conn, routers) do
-    %{method: method, path_info: path_info, host: host} = conn = conn
+    %{method: method, path_info: path_info, host: host} = conn
     decoded = Enum.map(path_info, &URI.decode/1)
 
     Enum.reduce_while(routers, :error, fn router, _acc ->
