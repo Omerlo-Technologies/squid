@@ -52,9 +52,6 @@ defmodule Squid.PartialTest do
   end
 
   test "Rendering a partial" do
-    dbg(Application.get_env(:squid, :tentacles))
-    dbg(Application.get_env(:squid, :private_partials))
-
     html = Partial.render(%{partial: :greetings_builder, user_name: "Squid's King"}) |> h2s()
 
     assert html == """
