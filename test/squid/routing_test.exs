@@ -3,7 +3,7 @@ defmodule Squid.RoutingTest do
   use RouterHelper
 
   defmodule CustomController do
-    use Phoenix.Controller
+    use Phoenix.Controller, formats: [html: "View"]
     def index(conn, _params), do: text(conn, "users index")
   end
 

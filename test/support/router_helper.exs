@@ -10,7 +10,8 @@ defmodule RouterHelper do
 
   defmacro __using__(_) do
     quote do
-      use Plug.Test
+      import Plug.Conn
+      import Plug.Test
       import RouterHelper
     end
   end
