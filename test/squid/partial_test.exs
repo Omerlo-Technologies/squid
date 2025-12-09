@@ -71,7 +71,8 @@ defmodule Squid.PartialTest do
   end
 
   defp put_partials_cfg(otp_app, partial_name, cfg) do
-    Application.get_env(otp_app, :squid, force: true)
+    Application.get_env(otp_app, :squid, [])
+    |> Keyword.put_new(:force, true)
     |> Keyword.put(:partials, %{partial_name => cfg})
     |> then(&Application.put_env(otp_app, :squid, &1))
   end
