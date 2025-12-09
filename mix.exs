@@ -29,7 +29,7 @@ defmodule Squid.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:phoenix_live_view, "~> 0.19"},
+      {:phoenix_live_view, "~> 0.19 or ~> 1.0"},
       {:phoenix_html, "~> 3.1 or ~> 4.0"},
       {:jason, "~> 1.3", optional: true},
       {:ex_doc, "~> 0.29.4", only: :dev, runtime: false}
